@@ -57,7 +57,7 @@ let particles = [];
 const MAX_PARTICLES = 100;
 const particleGeometry = new THREE.SphereGeometry(0.02, 4, 4);
 
-// UI Elements
+// UI
 const hud = document.getElementById('hud');
 const playerScoreEl = document.getElementById('player-score');
 const aiScoreEl = document.getElementById('ai-score');
@@ -75,12 +75,12 @@ const wininnerTextEl = document.getElementById('winner-text');
 const finalPlayerScoreEl = document.getElementById('final-player-score');
 const finalAiScoreEl = document.getElementById('final-ai-score');
 
-// Buttons
+//Buttons
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('resume-btn').addEventListener('click', togglePause);
 document.getElementById('rematch-btn').addEventListener('click', startGame);
 
-// Action Menu Buttons
+//Action Menu
 document.getElementById('power-shot-btn').addEventListener('click', () => performTurnBasedAction('power'));
 document.getElementById('spin-shot-btn').addEventListener('click', () => performTurnBasedAction('precision'));
 document.getElementById('lob-shot-btn').addEventListener('click', () => performTurnBasedAction('lob'));
@@ -91,7 +91,7 @@ function setGameState(newState) {
     gameState = newState;
     gameStateTextEl.innerText = newState.toUpperCase();
     
-    // UI Visibility
+    //UI
     menuScreen.classList.toggle('hidden', gameState !== 'menu');
     pausedScreen.classList.toggle('hidden', gameState !== 'paused');
     gameOverScreen.classList.toggle('hidden', gameState !== 'gameOver');
@@ -108,7 +108,7 @@ function setGameState(newState) {
 }
 
 function init() {
-    // --- Stats ---
+    //Stats
     stats = new Stats();
     stats.showPanel(0);
     stats.dom.style.position = 'absolute';
@@ -117,13 +117,13 @@ function init() {
     stats.dom.style.zIndex = '100';
     document.body.appendChild(stats.dom);
 
-    // --- Physics ---
+    //Physics
     world = new CANNON.World({
         gravity: new CANNON.Vec3(0, -9.82, 0),
     });
     world.allowSleep = false;
 
-    // Materials
+    //Materials
     const tableMaterial = new CANNON.Material('table');
     const ballMaterial = new CANNON.Material('ball');
     const paddleMaterial = new CANNON.Material('paddle');
@@ -139,16 +139,16 @@ function init() {
     world.addContactMaterial(ballTableContact);
     world.addContactMaterial(ballPaddleContact);
 
-    // --- Scene ---
+    //Scene 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xe0e7ff); // Very light sky blue
+    scene.background = new THREE.Color(0xe0e7ff); // sky blue
     scene.fog = new THREE.FogExp2(0xe0e7ff, 0.05);
 
-    // Initialise Particles
+    //Particles
     const pMaterial = new THREE.MeshBasicMaterial({ 
         color: 0xffffff, 
         transparent: true,
-        blending: THREE.NormalBlending // Normal blending for better contrast on light background
+        blending: THREE.NormalBlending
     });
     for (let i = 0; i < MAX_PARTICLES; i++) {
         const p = new THREE.Mesh(particleGeometry, pMaterial.clone());
@@ -172,13 +172,11 @@ function init() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.getElementById('game-container').appendChild(renderer.domElement);
 
-    // --- Lighting ---
-    // HemisphereLight for natural "Global Illumination" feel (Sky color, Ground color, Intensity)
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x88aaff, 1.2); // Soft blue ground bounce
+    //Light
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x88aaff, 1.2); //blue
     hemiLight.position.set(0, 20, 0);
     scene.add(hemiLight);
 
-    // Warm Key Light
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
     keyLight.position.set(5, 10, 5);
     keyLight.castShadow = true;
@@ -191,17 +189,14 @@ function init() {
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
-    // Cool Fill Light for depth
     const fillLight = new THREE.DirectionalLight(0xddeeff, 0.8);
     fillLight.position.set(-5, 5, -5);
     scene.add(fillLight);
 
-    // rimLight position updated to pull objects from light background
     const rimLight = new THREE.PointLight(0xffffff, 15, 15);
     rimLight.position.set(0, 3, -10);
     scene.add(rimLight);
 
-    // --- Ground Field ---
     const groundGeometry = new THREE.PlaneGeometry(100, 100);
     const groundMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xf8fafc,
@@ -210,21 +205,18 @@ function init() {
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.5; // Grounding the scene
+    ground.position.y = -0.5;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Subtle Grid
     const gridHelper = new THREE.GridHelper(40, 40, 0xccd6e0, 0xdde6f0);
     gridHelper.position.y = -0.49;
     scene.add(gridHelper);
 
-    // Decorative Background Elements
     const decorativeGeo = new THREE.IcosahedronGeometry(1, 2);
     const backgroundGroup = new THREE.Group();
     backgroundGroup.name = "backgroundDecorative";
     
-    // Combine both sets of blobs into one loop
     for (let i = 0; i < 27; i++) {
         const opacity = i < 15 ? 0.08 : 0.12;
         const scaleBase = i < 15 ? 8 : 5;
@@ -245,7 +237,6 @@ function init() {
         blob.position.set(Math.cos(angle) * radius, 5 + Math.random() * 20, Math.sin(angle) * radius);
         blob.scale.setScalar(scaleBase + Math.random() * scaleRange);
         
-        // Organic rotation speeds
         blob.userData.rotSpeed = {
             x: (Math.random() - 0.5) * 0.005,
             y: (Math.random() - 0.5) * 0.005,
@@ -256,7 +247,7 @@ function init() {
     }
     scene.add(backgroundGroup);
 
-    // --- Table ---
+    //Table
     const tableGeometry = new THREE.BoxGeometry(TABLE_WIDTH, 0.05, TABLE_LENGTH);
     const tableMeshMaterial = new THREE.MeshStandardMaterial({ 
         color: 0x1b5e20,
@@ -277,14 +268,14 @@ function init() {
     tableBody.name = 'table';
     world.addBody(tableBody);
 
-    // Table Lines
+    //Table
     const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.02, TABLE_LENGTH), lineMaterial);
     centerLine.rotation.x = -Math.PI / 2;
     centerLine.position.y = TABLE_HEIGHT + 0.026;
     scene.add(centerLine);
 
-    // Trajectory Line
+    //Trajectory 
     const trajectoryGeometry = new THREE.BufferGeometry();
     trajectoryGeometry.setAttribute('position', new THREE.BufferAttribute(trajectoryPositions, 3));
     const trajectoryMaterial = new THREE.LineDashedMaterial({ 
@@ -298,7 +289,7 @@ function init() {
     trajectoryLine.visible = false;
     scene.add(trajectoryLine);
 
-    // Net
+    //Net
     const netGeometry = new THREE.PlaneGeometry(TABLE_WIDTH, NET_HEIGHT);
     const netMeshMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xffffff, 
@@ -319,7 +310,7 @@ function init() {
     });
     world.addBody(netBody);
 
-    // --- Ball ---
+    //Ball
     const ballGeometry = new THREE.SphereGeometry(BALL_RADIUS, 32, 32);
     const ballMeshMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xff9800,
@@ -332,11 +323,9 @@ function init() {
     ballMesh.castShadow = true;
     scene.add(ballMesh);
 
-    // Ball Light
     ballLight = new THREE.PointLight(0xff9800, 5, 0.8);
     scene.add(ballLight);
 
-    // Initialise Echoes (for high speed motions)
     const echoMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xff9800, 
         transparent: true, 
@@ -359,7 +348,7 @@ function init() {
     ballBody.name = 'ball';
     ball = { mesh: ballMesh, body: ballBody };
 
-    // --- Collision detection ---
+    //Collision detection
     ballBody.addEventListener('collide', (e) => {
         if (gameState !== 'playing') return;
         const other = e.body;
@@ -374,7 +363,6 @@ function init() {
         }
     });
 
-    // --- Paddles ---
     function createPaddleObj(color, zPos) {
         const paddleGeometry = new THREE.CylinderGeometry(PADDLE_RADIUS, PADDLE_RADIUS, PADDLE_THICKNESS, 32);
         const paddleMeshMaterial = new THREE.MeshStandardMaterial({ 
@@ -405,7 +393,6 @@ function init() {
     playerPaddle = createPaddleObj(0xf44336, TABLE_LENGTH / 2 + 0.2);
     aiPaddle = createPaddleObj(0x2196f3, -TABLE_LENGTH / 2 - 0.2);
 
-    // --- Floor ---
     const floorGeometry = new THREE.PlaneGeometry(30, 30);
     const floorMaterial = new THREE.MeshStandardMaterial({ 
         color: 0x333a4d, // Deep slate blue/grey
@@ -417,13 +404,11 @@ function init() {
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // --- Event Listeners ---
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mousedown', onMouseDown);
     window.addEventListener('keydown', onKeyDown);
 
-    // Landing Indicator (predicted spot)
     const landingGeo = new THREE.RingGeometry(0.1, 0.12, 32);
     const landingMat = new THREE.MeshBasicMaterial({ 
         color: 0xffffff, 
@@ -470,13 +455,11 @@ function serveBall() {
     
     gameStateTextEl.innerText = "PLAYING";
 
-    // Reset rules tracking for serve
     lastHitter = currentServer;
     bounceSide = null;
     bounceCount = 0;
     isFirstServeBounceOnServerSide = true;
 
-    // Position ball on server side
     const zPos = currentServer === 'player' ? (TABLE_LENGTH / 2) : (-TABLE_LENGTH / 2);
     const zDir = currentServer === 'player' ? -1 : 1; // Movement direction
     
@@ -485,25 +468,22 @@ function serveBall() {
     ball.body.angularVelocity.set(0, 0, 0);
     ball.body.wakeUp();
     
-    // Give it a good push towards the opponent
+    //towards the opponent
     ball.body.velocity.set((Math.random() - 0.5) * 1, 3, zDir * 4);
 }
 
 function resetBall() {
-    // Determine next server: alternate every 2 points
     const totalPoints = score.player + score.ai;
     currentServer = (Math.floor(totalPoints / 2) % 2 === 0) ? 'player' : 'ai';
     hasTakenTurnThisRound = false;
     ballEchoes.forEach(e => e.visible = false);
 
-    // Set ball waiting position for player serve or AI serve
     const zPos = currentServer === 'player' ? (TABLE_LENGTH / 2) : (-TABLE_LENGTH / 2);
     ball.body.position.set(0, TABLE_HEIGHT + 0.3, zPos);
     ball.body.velocity.set(0, 0, 0);
     ball.body.angularVelocity.set(0, 0, 0);
     ball.body.wakeUp();
     
-    // Only auto-serve for the AI
     if (currentServer === 'ai') {
         setTimeout(() => {
             if (gameState !== 'playing') return;
@@ -555,21 +535,17 @@ function handlePaddleHit(side) {
     isFirstServeBounceOnServerSide = false;
 
     if (side === 'ai') {
-        hasTakenTurnThisRound = false; // Reset for when ball comes back to player
+        hasTakenTurnThisRound = false; 
     }
 
-    // Trigger shake on hit
     triggerCameraShake(0.05);
 
-    // Hit Particles
     const pos = ball.body.position;
     const speed = ball.body.velocity.length();
     const particleCount = Math.floor(5 + speed * 2); // Scale with speed
     for (let i = 0; i < Math.min(particleCount, 25); i++) {
         spawnParticle(pos.x, pos.y, pos.z, side === 'player' ? 0x2196f3 : 0xf44336, 0.5 + Math.random() * 0.5);
     }
-
-    // Power Hit Logic (Both sides)
     if (side === 'ai') {
         const targetZDir = 1; // Towards player
         const speedBoost = 6.5;
@@ -597,9 +573,6 @@ function performTurnBasedAction(type) {
     if (gameState !== 'turnBasedMenu') return;
     
     selectedActionType = type;
-    
-    // Snap ball to a clean hitting position relative to the paddle
-    // ensures the trajectory starts from a consistent spot and collision is guaranteed
     ball.body.position.set(
         ball.body.position.x,
         ball.body.position.y,
@@ -607,7 +580,6 @@ function performTurnBasedAction(type) {
     );
     ball.body.velocity.set(0, 0, 0);
 
-    // Update trajectory color based on type
     if (trajectoryLine) {
         let color = 0xffffff;
         if (type === 'power') color = 0xff4444;
@@ -627,14 +599,10 @@ function confirmShot() {
 
     const physics = getShotPhysics(selectedActionType);
 
-    // Explicitly call the hit handler to ensure game rules (bounces, score tracking) 
-    // are updated correctly and visual effects (shake, particles) trigger.
     handlePaddleHit('player');
 
-    // Override the automated velocity from handlePaddleHit with the player's aimed trajectory
     ball.body.velocity.set(physics.vx, physics.vy, physics.vz);
 
-    // Visual lunge
     playerPaddle.body.position.z -= 0.45;
 }
 
@@ -682,10 +650,8 @@ function handleTableBounce() {
     const ballZ = ball.body.position.z;
     const currentSide = ballZ > 0 ? 'player' : 'ai';
 
-    // Trigger shake on bounce
     triggerCameraShake(0.03);
 
-    // Bounce Particles
     const pos = ball.body.position;
     const speed = ball.body.velocity.length();
     const particleCount = Math.floor(3 + speed * 1.5); // Scale with speed
@@ -709,14 +675,12 @@ function handleTableBounce() {
 
     // Normal play collision
     if (currentSide === lastHitter) {
-        // Ball hit the hitter's own side (after crossing or during serve 1st bounce is over)
         awardPoint(lastHitter === 'player' ? 'ai' : 'player');
     } else {
         // Ball hit the opponent's side
         if (bounceSide === currentSide) {
             bounceCount++;
             if (bounceCount > 1) {
-                // Point is lost because of double bounce
                 awardPoint(lastHitter);
             }
         } else {
@@ -863,14 +827,12 @@ function animate() {
 
         
 
-        // Player Paddle Control
         const playerBaseZ = TABLE_LENGTH / 2 + 0.2;
         const ballDistToPlayer = playerBaseZ - ball.body.position.z;
         
-        // Player "Swings" forward if ball is approaching and close
         let playerTargetZ = playerBaseZ;
         
-        // Trigger Turn-Based Menu
+        //Turn-Based Menu
         if (ball.body.velocity.z > 0 && ballDistToPlayer < 0.8 && ballDistToPlayer > 0 && gameState === 'playing' && !hasTakenTurnThisRound) {
             setGameState('turnBasedMenu');
         }
@@ -1022,7 +984,6 @@ function animate() {
             
             if (!firstLandingSet) landingIndicator.visible = false;
 
-            // Power color coding
             const power = Math.sqrt(physics.vx * physics.vx + physics.vz * physics.vz + physics.vy * physics.vy);
             const hue = Math.max(0, 0.4 - (power / 40)); 
             const color = new THREE.Color().setHSL(hue, 0.9, 0.5);
@@ -1049,30 +1010,24 @@ function animate() {
         
         playerPaddle.body.quaternion.setFromEuler(playerPaddle.mesh.rotation.x, playerPaddle.mesh.rotation.y, playerPaddle.mesh.rotation.z);
         
-        // Ensure distance is also updated in other states for feedback
         const dist = ball.body.position.distanceTo(playerPaddle.body.position);
         ballDistTextEl.innerText = dist.toFixed(2);
 
-        // Ensure speed is also updated in other states for feedback
         const speed = ball.body.velocity.length();
         ballSpeedTextEl.innerText = speed.toFixed(2);
 
-        // Ensure others are synced even if static
         ball.mesh.position.set(ball.body.position.x, ball.body.position.y, ball.body.position.z);
         aiPaddle.mesh.position.set(aiPaddle.body.position.x, aiPaddle.body.position.y, aiPaddle.body.position.z);
     }
 
     renderer.render(scene, camera);
 
-    // --- Dynamic Camera Logic ---
     const ballPos = ball.body.position;
     
-    // Target position: slightly follow ball X, and adjust height/depth based on play
     const targetCamX = ballPos.x * 0.35;
     const targetCamY = defaultCameraPos.y + (ballPos.y - TABLE_HEIGHT) * 0.2;
     const targetCamZ = defaultCameraPos.z + (ballPos.z > 0 ? 0.3 : -0.3); // Zoom in slightly when ball is close
     
-    // Target lookAt: focus slightly ahead of the ball
     const targetLookX = ballPos.x * 0.5;
     const targetLookY = defaultCameraTarget.y;
     const targetLookZ = ballPos.z * 0.1;
@@ -1113,6 +1068,5 @@ function endGame() {
     finalAiScoreEl.innerText = score.ai;
 }
 
-// Start
 init();
 setGameState('menu');
