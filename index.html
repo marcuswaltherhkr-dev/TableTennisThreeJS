@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Table Tennis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap');
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+        }
+        canvas {
+            display: block;
+        }
+        .stats-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js",
+                "stats.js": "https://unpkg.com/stats.js@0.17.0/src/Stats.js"
+            }
+        }
+    </script>
+</head>
+<body class="bg-black text-white selection:bg-orange-500 selection:text-white">
+    <div id="game-container" class="relative w-full h-screen">
+        <!-- Dashboard / UI -->
+        <div id="hud" class="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-12 pointer-events-none z-10 transition-opacity duration-300">
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-1">Player</span>
+                <span id="player-score" class="text-6xl font-light tabular-nums">0</span>
+            </div>
+            <div class="h-12 w-[1px] bg-zinc-800"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-1">AI Opponent</span>
+                <span id="ai-score" class="text-6xl font-light tabular-nums">0</span>
+            </div>
+        </div>
+
+        <!-- Status Indicator -->
+        <div class="absolute top-4 right-4 pointer-events-none z-10 flex flex-col items-end gap-2">
+            <div id="game-state-badge" class="px-3 py-1 border border-zinc-800 bg-black/50 text-[10px] uppercase tracking-widest text-zinc-500 rounded-full">
+                State: <span id="game-state-text">MENU</span>
+            </div>
+            <div id="distance-badge" class="px-3 py-1 border border-zinc-800 bg-black/50 text-[10px] uppercase tracking-widest text-zinc-500 rounded-full">
+                Dist: <span id="ball-dist-text">0.00</span>m
+            </div>
+            <div id="speed-badge" class="px-3 py-1 border border-zinc-800 bg-black/50 text-[10px] uppercase tracking-widest text-zinc-500 rounded-full">
+                Speed: <span id="ball-speed-text">0.00</span>m/s
+            </div>
+        </div>
+
+        <!-- Controls HUD -->
+        <div class="absolute bottom-8 left-8 flex flex-col gap-2 pointer-events-none opacity-50 z-10">
+            <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 border border-zinc-700 bg-black/50 text-[10px] rounded text-zinc-400 font-medium">MOUSE</span>
+                <span class="text-[10px] uppercase tracking-wider">Move Paddle</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 border border-zinc-700 bg-black/50 text-[10px] rounded text-zinc-400 font-medium">ESC</span>
+                <span class="text-[10px] uppercase tracking-wider">Pause Game</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 border border-zinc-700 bg-black/50 text-[10px] rounded text-zinc-400 font-medium">SPACE</span>
+                <span class="text-[10px] uppercase tracking-wider">Serve Ball</span>
+            </div>
+        </div>
+
+        <!-- Overlays -->
+        <div id="overlays" class="absolute inset-0 z-50">
+            <!-- Turn-based Action Menu -->
+        <div id="action-menu" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-auto">
+            <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-2xl flex flex-col gap-4 min-w-[300px]">
+                <h2 class="text-xl font-light tracking-[0.2em] uppercase mb-4 text-center">Select Action</h2>
+                <button id="power-shot-btn" class="px-6 py-4 bg-zinc-800 hover:bg-red-900/50 border border-zinc-700 hover:border-red-500 transition-all rounded-xl text-sm uppercase tracking-widest text-left flex justify-between items-center group">
+                    <span>Power Shot</span>
+                    <span class="text-[10px] text-zinc-500 group-hover:text-red-400">High Speed / Low Accuracy</span>
+                </button>
+                <button id="spin-shot-btn" class="px-6 py-4 bg-zinc-800 hover:bg-blue-900/50 border border-zinc-700 hover:border-blue-500 transition-all rounded-xl text-sm uppercase tracking-widest text-left flex justify-between items-center group">
+                    <span>Precision Shot</span>
+                    <span class="text-[10px] text-zinc-500 group-hover:text-blue-400">Medium Speed / High Accuracy</span>
+                </button>
+                <button id="lob-shot-btn" class="px-6 py-4 bg-zinc-800 hover:bg-emerald-900/50 border border-zinc-700 hover:border-emerald-500 transition-all rounded-xl text-sm uppercase tracking-widest text-left flex justify-between items-center group">
+                    <span>Lob Shot</span>
+                    <span class="text-[10px] text-zinc-500 group-hover:text-emerald-400">High Arc / Safe Return</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="aiming-hint" class="hidden fixed bottom-12 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+            <div class="px-6 py-3 bg-zinc-900/90 border border-zinc-800 rounded-full flex items-center gap-4 shadow-2xl">
+                <span class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                    <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-400">Aim X: <span id="aim-x-val" class="text-white font-mono">0.00</span></span>
+                    <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-400 ml-2">Aim Y: <span id="aim-y-val" class="text-white font-mono">0.00</span></span>
+                </span>
+                <div class="w-px h-4 bg-zinc-800"></div>
+                <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-200 font-medium">Click to Strike</span>
+            </div>
+        </div>
+
+        <!-- Menu Screen -->
+            <div id="menu-screen" class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-all duration-500">
+                <div class="p-12 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col items-center gap-8 max-w-md w-full shadow-2xl">
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="w-16 h-16 bg-orange-500/10 rounded-full flex items-center justify-center mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-orange-500"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                        <h1 class="text-4xl font-light tracking-tight text-white uppercase italic">Table Tennis 3D</h1>
+                        <p class="text-zinc-500 text-sm text-center">Master the physics of the table. Beat the AI in a race to 11 points.</p>
+                    </div>
+                    <button id="start-btn" class="w-full bg-white text-black hover:bg-zinc-200 text-lg font-bold h-14 rounded-lg transition-colors flex items-center justify-center gap-2 tracking-tighter">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        START MATCH
+                    </button>
+                </div>
+            </div>
+
+            <!-- Paused Screen -->
+            <div id="paused-screen" class="hidden absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                <div class="flex flex-col items-center gap-6">
+                    <h2 class="text-4xl font-light tracking-[0.3em] text-white italic">PAUSED</h2>
+                    <button id="resume-btn" class="bg-white/10 border border-white/20 hover:bg-white/20 text-white px-8 py-2 rounded-full backdrop-blur-md transition-all font-medium tracking-widest text-sm">
+                        RESUME
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="gameover-screen" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md">
+                <div class="p-12 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col items-center gap-8 max-w-md w-full shadow-2xl">
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="text-[10px] uppercase tracking-[0.3em] text-zinc-500">Match Result</span>
+                        <h1 id="winner-text" class="text-5xl font-light tracking-tight text-white mb-4 italic uppercase">VICTORY</h1>
+                        <div class="flex items-center gap-8">
+                            <div class="flex flex-col items-center">
+                                <span id="final-player-score" class="text-5xl font-light">0</span>
+                                <span class="text-[10px] text-zinc-500 uppercase tracking-widest">You</span>
+                            </div>
+                            <span class="text-2xl text-zinc-800">—</span>
+                            <div class="flex flex-col items-center">
+                                <span id="final-ai-score" class="text-5xl font-light">0</span>
+                                <span class="text-[10px] text-zinc-500 uppercase tracking-widest">AI</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="rematch-btn" class="w-full bg-white text-black hover:bg-zinc-200 text-lg font-bold h-14 rounded-lg transition-colors flex items-center justify-center gap-2 tracking-tighter">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                        REMATCH
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="game.js"></script>
+</body>
+</html>
